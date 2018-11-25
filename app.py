@@ -24,11 +24,15 @@ cause_options = [{'label': x, 'value': x} for x in ['All'] + causes_all]
 cause_options_map = {x: [x] for x in causes_all}
 cause_options_map['All'] = causes_all
 
+colors = ['red', 'green', 'black']
+cause_colors_map = dict(zip(causes_all, colors))
+
 # Layout definition for bar chart
 layout_bar = go.Layout(
     xaxis=dict(tickangle=-45),
     yaxis=dict(fixedrange=True),
     barmode='stack',
+    showlegend=False,
     margin={'r': 5,
             't': 20,
             'b': 80,
@@ -44,12 +48,13 @@ layout_map = go.Layout(
         accesstoken=mapbox_access_token,
         bearing=0,
         center=dict(
-            lat=55,
+            lat=52,
             lon=10
         ),
         pitch=0,
-        zoom=5
+        zoom=6
     ),
+    showlegend=False,
     margin={'r': 20,
             't': 20,
             'b': 5,
@@ -148,11 +153,13 @@ def update_bar_figure(selected_cause, aggregation):
         df_rs = df_rs.resample('3M').count()['lat'].rename('counts')
 
     data_bar = []
-    for cause in selected_cause_list:
+    for cause in sorted(selected_cause_list):
         data_bar.append(
             go.Bar(
                 x=[str(x) for x in list(df_rs[cause].index)],
                 y=df_rs[cause].values,
+                marker=dict(
+                    color=cause_colors_map[cause]),
                 name=cause,
             ))
 
@@ -190,18 +197,24 @@ def update_map_figure(relayoutData, selected_cause):
                      (df.dtg <= time_range[1]) &
                      df.cause.isin(selected_cause_list)]
 
-    data = [
-        go.Scattermapbox(
-            lon=df_filtered['lon'],
-            lat=df_filtered['lat'],
-            mode='markers',
-            marker=dict(
-                size=8,
-                color='rgb(255, 0, 0)',
-                opacity=0.7
-            ),
-            hoverinfo='text'
-        )]
+    data = []
+    for cause in sorted(selected_cause_list):
+        data.append(
+            go.Scattermapbox(
+                lon=df_filtered[df_filtered.cause == cause]['lon'],
+                lat=df_filtered[df_filtered.cause == cause]['lat'],
+                mode='markers',
+                marker=dict(
+                    size=8,
+                    # color='rgb(255, 0, 0)',
+                    color=cause_colors_map[cause],
+                    opacity=0.7
+                ),
+                name=cause,
+                hoverinfo='name'
+            )
+        )
+    # import pdb; pdb.set_trace()
 
     return {
         'data': data,
